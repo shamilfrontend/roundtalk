@@ -17,7 +17,7 @@ import ParticipantTile from "@/components/participant-tile.vue";
 import RoomPrejoin from "@/components/room-prejoin.vue";
 import RoomSidebar from "@/components/room-sidebar.vue";
 import RoomToolbar from "@/components/room-toolbar.vue";
-import { formatDateTime, formatElapsed } from "@/composables/format";
+import { formatElapsed } from "@/composables/format";
 import { useLocalMedia } from "@/composables/use-local-media";
 import { useScreenShare } from "@/composables/use-screen-share";
 import { useWebrtc } from "@/composables/use-webrtc";
@@ -125,23 +125,6 @@ function syncKeyboardInset(): void {
     window.innerHeight - viewport.height - viewport.offsetTop,
   );
 }
-
-const isHostUser = computed(() => {
-  const userId = auth.user?.id;
-  const hostId = publicRoom.value?.hostId ?? room.value?.hostId;
-
-  return userId !== undefined && hostId !== undefined && userId === hostId;
-});
-
-const isWaiting = computed(() => {
-  const info = publicRoom.value;
-
-  if (info === null || info.status !== "scheduled" || info.scheduledAt === null) {
-    return false;
-  }
-
-  return now.value < new Date(info.scheduledAt).getTime() && !isHostUser.value;
-});
 
 const title = computed(
   () => room.value?.title ?? publicRoom.value?.title ?? "Встреча",
@@ -682,16 +665,6 @@ function sendChat(text: string): void {
     >
       <h1>Встреча завершена</h1>
       <button class="btn btn-primary" type="button" @click="goHome">
-        На главную
-      </button>
-    </section>
-
-    <section v-else-if="isWaiting" class="status">
-      <h1>Комната ещё не началась</h1>
-      <p v-if="publicRoom?.scheduledAt">
-        Старт: {{ formatDateTime(publicRoom.scheduledAt) }}
-      </p>
-      <button class="btn btn-ghost" type="button" @click="goHome">
         На главную
       </button>
     </section>

@@ -1,5 +1,5 @@
 import { http } from "@/api/http";
-import type { CreateRoomPayload, RoomListItem, RoomPublic } from "@/types/room";
+import type { RoomListItem, RoomPublic } from "@/types/room";
 
 const ROOM_ID_PATTERN = /^[A-Za-z0-9_-]{6,32}$/;
 
@@ -38,22 +38,8 @@ export async function fetchHostRooms(): Promise<RoomListItem[]> {
   return data;
 }
 
-export async function createRoom(
-  payload: CreateRoomPayload = {},
-): Promise<RoomListItem> {
-  const { data } = await http.post<RoomListItem>("/api/rooms", payload);
-
-  return data;
-}
-
-export async function updateRoom(
-  roomId: string,
-  payload: CreateRoomPayload,
-): Promise<RoomListItem> {
-  const { data } = await http.patch<RoomListItem>(
-    `/api/rooms/${roomId}`,
-    payload,
-  );
+export async function createRoom(): Promise<RoomListItem> {
+  const { data } = await http.post<RoomListItem>("/api/rooms");
 
   return data;
 }

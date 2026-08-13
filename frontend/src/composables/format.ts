@@ -29,14 +29,7 @@ export function initials(name: string): string {
     .join("");
 }
 
-export function toDateTimeLocalValue(date: Date): string {
-  const pad = (value: number): string => String(value).padStart(2, "0");
-
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
-
 export const ROOM_STATUS_LABEL: Record<string, string> = {
-  scheduled: "Запланирована",
   live: "Идёт",
   ended: "Завершена",
 };

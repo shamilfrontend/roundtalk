@@ -4,11 +4,9 @@ import { RouterLink, useRouter } from "vue-router";
 import { parseRoomLink } from "@/api/rooms";
 import AppHeader from "@/components/app-header.vue";
 import HomeExtras from "@/components/home-extras.vue";
-import ScheduleDialog from "@/components/schedule-dialog.vue";
 import { formatDateTime, ROOM_STATUS_LABEL } from "@/composables/format";
 import { useAuthStore } from "@/stores/auth";
 import { useMeetingsStore } from "@/stores/meetings";
-import type { RoomListItem } from "@/types/room";
 
 const FEATURES = [
   {
@@ -39,22 +37,6 @@ const meetings = useMeetingsStore();
 
 const link = ref("");
 const joinError = ref<string | null>(null);
-const scheduleOpen = ref(false);
-const editingRoom = ref<RoomListItem | null>(null);
-
-const scheduleInitial = computed(() => {
-  const room = editingRoom.value;
-
-  if (room === null || room.scheduledAt === null) {
-    return undefined;
-  }
-
-  return {
-    title: room.title,
-    scheduledAt: room.scheduledAt,
-    durationMin: room.durationMin,
-  };
-});
 
 const visibleMeetings = computed(() =>
   meetings.items.filter((item) => item.status !== "ended"),
@@ -79,54 +61,6 @@ async function createMeeting(): Promise<void> {
   try {
     const room = await meetings.createInstant();
     await router.push({ name: "room", params: { roomId: room.roomId } });
-  } catch {
-    return;
-  }
-}
-
-function openSchedule(): void {
-  if (!auth.isAuthenticated) {
-    void router.push({ name: "login" });
-    return;
-  }
-
-  editingRoom.value = null;
-  scheduleOpen.value = true;
-}
-
-function openEdit(item: RoomListItem): void {
-  if (item.status !== "scheduled" || item.scheduledAt === null) {
-    return;
-  }
-
-  editingRoom.value = item;
-  scheduleOpen.value = true;
-}
-
-function closeSchedule(): void {
-  scheduleOpen.value = false;
-  editingRoom.value = null;
-}
-
-async function onSchedule(payload: {
-  title: string;
-  scheduledAt: string;
-  durationMin: number;
-}): Promise<void> {
-  if (meetings.isUpdating || meetings.isCreating) {
-    return;
-  }
-
-  try {
-    const room = editingRoom.value;
-
-    if (room !== null) {
-      await meetings.updateScheduled(room.roomId, payload);
-    } else {
-      await meetings.scheduleMeeting(payload);
-    }
-
-    closeSchedule();
   } catch {
     return;
   }
@@ -166,15 +100,6 @@ function joinByLink(): void {
           >
             <FontAwesomeIcon icon="phone" />
             Создать встречу
-          </button>
-          <button
-            v-if="auth.isAuthenticated"
-            class="btn btn-ghost"
-            type="button"
-            @click="openSchedule"
-          >
-            <FontAwesomeIcon icon="calendar" />
-            Запланировать
           </button>
         </div>
 
@@ -224,7 +149,7 @@ function joinByLink(): void {
       <h2>Мои встречи</h2>
       <p v-if="meetings.isLoading" class="muted">Загрузка…</p>
       <p v-else-if="visibleMeetings.length === 0" class="muted">
-        Пока нет встреч — создайте или запланируйте
+        Пока нет встреч — создайте комнату
       </p>
       <div v-else class="cards">
         <article
@@ -240,35 +165,12 @@ function joinByLink(): void {
               {{ item.title }}
             </RouterLink>
           </h3>
-          <p>
-            {{
-              item.scheduledAt
-                ? formatDateTime(item.scheduledAt)
-                : formatDateTime(item.createdAt)
-            }}
-          </p>
-          <p class="muted">{{ item.durationMin }} мин</p>
-          <button
-            v-if="item.status === 'scheduled'"
-            class="btn btn-ghost card-edit"
-            type="button"
-            :disabled="meetings.isUpdating"
-            @click="openEdit(item)"
-          >
-            Изменить
-          </button>
+          <p>{{ formatDateTime(item.createdAt) }}</p>
         </article>
       </div>
     </section>
 
     <HomeExtras />
-
-    <ScheduleDialog
-      v-if="scheduleOpen"
-      :initial="scheduleInitial"
-      @close="closeSchedule"
-      @submit="onSchedule"
-    />
   </div>
 </template>
 
@@ -465,13 +367,6 @@ function joinByLink(): void {
   text-decoration: none;
 }
 
-.card-edit {
-  align-self: flex-start;
-  margin-top: 12px;
-  height: 36px;
-  padding: 0 12px;
-}
-
 .card p {
   margin: 0;
   color: $color-text-secondary;
@@ -488,10 +383,6 @@ function joinByLink(): void {
 
 .badge[data-status="live"] {
   color: #8fd19e;
-}
-
-.badge[data-status="scheduled"] {
-  color: $color-accent;
 }
 
 @media (max-width: 900px) {

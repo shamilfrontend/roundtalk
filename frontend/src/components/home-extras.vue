@@ -15,9 +15,9 @@ interface FaqItem {
 
 const SHOWCASE: ShowcaseItem[] = [
   {
-    icon: "calendar",
-    title: "Планирование встреч",
-    text: "Укажите название, дату, время и длительность — комната откроется по расписанию",
+    icon: "phone",
+    title: "Мгновенный старт",
+    text: "Создайте комнату и сразу подключайтесь — без даты и ожидания",
   },
   {
     icon: "desktop",

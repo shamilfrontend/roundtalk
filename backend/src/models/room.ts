@@ -16,8 +16,6 @@ export interface RoomDoc {
   title: string;
   status: RoomStatus;
   hostId: Types.ObjectId;
-  scheduledAt: Date | null;
-  durationMin: number;
   endedAt: Date | null;
   createdAt: Date;
   participants: ParticipantDoc[];
@@ -47,11 +45,9 @@ const roomSchema = new Schema<RoomDoc>(
     status: {
       type: String,
       required: true,
-      enum: ["scheduled", "live", "ended"],
+      enum: ["live", "ended"],
     },
     hostId: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    scheduledAt: { type: Date, default: null },
-    durationMin: { type: Number, required: true, default: 60 },
     endedAt: { type: Date, default: null },
     participants: { type: [participantSchema], default: [] },
   },

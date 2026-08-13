@@ -5,8 +5,6 @@ export const DISPLAY_NAME_MIN = 2;
 export const DISPLAY_NAME_MAX = 40;
 export const CHAT_TEXT_MAX = 1000;
 export const TITLE_MAX = 120;
-export const DURATION_MIN_DEFAULT = 60;
-export const DURATION_MIN_MAX = 1440;
 export const EMOJI_MAX = 16;
 export const MAX_ROOM_PARTICIPANTS = 6;
 
@@ -87,40 +85,6 @@ export function validateTitle(value: unknown): string | undefined {
   }
 
   return title;
-}
-
-export function validateDurationMin(value: unknown): number | undefined {
-  if (value === undefined) {
-    return undefined;
-  }
-
-  if (typeof value !== "number" || !Number.isInteger(value) || value <= 0) {
-    throw new HttpError(400, "invalid_duration", "Некорректная длительность");
-  }
-
-  if (value > DURATION_MIN_MAX) {
-    throw new HttpError(400, "invalid_duration", "Некорректная длительность");
-  }
-
-  return value;
-}
-
-export function validateScheduledAt(value: unknown): Date | undefined {
-  if (value === undefined) {
-    return undefined;
-  }
-
-  if (typeof value !== "string" || value.trim().length === 0) {
-    throw new HttpError(400, "invalid_scheduled_at", "Некорректная дата");
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    throw new HttpError(400, "invalid_scheduled_at", "Некорректная дата");
-  }
-
-  return date;
 }
 
 export function validateEmoji(value: unknown): string {

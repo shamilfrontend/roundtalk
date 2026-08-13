@@ -6,19 +6,27 @@ import type {
   ParticipantPublic,
   RoomListItem,
   RoomPublic,
+  RoomStatus,
 } from "../types/room.js";
 import { HttpError } from "../utils/http-error.js";
 import { createRoomId } from "../utils/ids.js";
-import { DURATION_MIN_DEFAULT, MAX_ROOM_PARTICIPANTS } from "../utils/validate.js";
+import { MAX_ROOM_PARTICIPANTS } from "../utils/validate.js";
 
 const CHAT_HISTORY_LIMIT = 100;
+
+function toRoomStatus(status: string): RoomStatus {
+  return status === "ended" ? "ended" : "live";
+}
+
+function persistRoomStatus(room: RoomDoc): void {
+  room.status = toRoomStatus(room.status);
+}
 
 function toRoomPublic(room: RoomDoc): RoomPublic {
   return {
     roomId: room.roomId,
     title: room.title,
-    status: room.status,
-    scheduledAt: room.scheduledAt ? room.scheduledAt.toISOString() : null,
+    status: toRoomStatus(room.status),
     hostId: String(room.hostId),
   };
 }
@@ -26,7 +34,6 @@ function toRoomPublic(room: RoomDoc): RoomPublic {
 export function toRoomListItem(room: RoomDoc): RoomListItem {
   return {
     ...toRoomPublic(room),
-    durationMin: room.durationMin,
     createdAt: room.createdAt.toISOString(),
     endedAt: room.endedAt ? room.endedAt.toISOString() : null,
   };
@@ -94,17 +101,12 @@ function sameIdentity(
 export async function createRoom(input: {
   hostId: string;
   title?: string | undefined;
-  scheduledAt?: Date | undefined;
-  durationMin?: number | undefined;
 }): Promise<RoomListItem> {
-  const scheduledAt = input.scheduledAt;
   const room = await RoomModel.create({
     roomId: createRoomId(),
     title: input.title ?? "Встреча",
-    status: scheduledAt === undefined ? "live" : "scheduled",
+    status: "live",
     hostId: new Types.ObjectId(input.hostId),
-    scheduledAt: scheduledAt ?? null,
-    durationMin: input.durationMin ?? DURATION_MIN_DEFAULT,
     endedAt: null,
     participants: [],
   });
@@ -128,44 +130,6 @@ export async function getPublicRoom(roomId: string): Promise<RoomPublic> {
   }
 
   return toRoomPublic(room);
-}
-
-export async function updateScheduledRoom(input: {
-  roomId: string;
-  hostId: string;
-  title?: string | undefined;
-  scheduledAt?: Date | undefined;
-  durationMin?: number | undefined;
-}): Promise<RoomListItem> {
-  const room = await RoomModel.findOne({ roomId: input.roomId });
-
-  if (!room) {
-    throw new HttpError(404, "room_not_found", "Комната не найдена");
-  }
-
-  if (String(room.hostId) !== input.hostId) {
-    throw new HttpError(403, "forbidden", "Недостаточно прав");
-  }
-
-  if (room.status !== "scheduled") {
-    throw new HttpError(409, "room_not_scheduled", "Комнату уже нельзя изменить");
-  }
-
-  if (input.title !== undefined) {
-    room.title = input.title;
-  }
-
-  if (input.scheduledAt !== undefined) {
-    room.scheduledAt = input.scheduledAt;
-  }
-
-  if (input.durationMin !== undefined) {
-    room.durationMin = input.durationMin;
-  }
-
-  await room.save();
-
-  return toRoomListItem(room.toObject());
 }
 
 export async function endRoomByHost(
@@ -244,15 +208,7 @@ export async function joinRoom(input: {
   const isHost =
     input.userId !== undefined && String(room.hostId) === input.userId;
 
-  if (room.status === "scheduled") {
-    const now = new Date();
-
-    if (room.scheduledAt !== null && now < room.scheduledAt && !isHost) {
-      throw new HttpError(403, "room-not-started", "Комната ещё не началась");
-    }
-
-    room.status = "live";
-  }
+  persistRoomStatus(room);
 
   const existingIndex = room.participants.findIndex((participant) =>
     sameIdentity(participant, input.userId, input.displayName),
@@ -333,9 +289,9 @@ export async function leaveBySocketId(socketId: string): Promise<{
   );
 
   let roomEnded = false;
-  const isInstant = room.scheduledAt === null;
+  persistRoomStatus(room);
 
-  if (isInstant && room.status === "live" && room.participants.length === 0) {
+  if (room.status === "live" && room.participants.length === 0) {
     room.status = "ended";
     room.endedAt = new Date();
     roomEnded = true;
@@ -383,6 +339,7 @@ export async function updateParticipantState(
     participant.isHandRaised = patch.isHandRaised;
   }
 
+  persistRoomStatus(room);
   await room.save();
 
   return toParticipantPublic(participant);

@@ -1,4 +1,4 @@
-export type RoomStatus = "scheduled" | "live" | "ended";
+export type RoomStatus = "live" | "ended";
 
 export type ParticipantRole = "host" | "participant";
 
@@ -16,12 +16,10 @@ export interface RoomPublic {
   roomId: string;
   title: string;
   status: RoomStatus;
-  scheduledAt: string | null;
   hostId: string;
 }
 
 export interface RoomListItem extends RoomPublic {
-  durationMin: number;
   createdAt: string;
   endedAt: string | null;
 }
@@ -40,10 +38,4 @@ export interface RoomStatePayload {
   participants: ParticipantPublic[];
   messages: ChatMessagePublic[];
   screenShareSocketId: string | null;
-}
-
-export interface CreateRoomPayload {
-  title?: string;
-  scheduledAt?: string;
-  durationMin?: number;
 }

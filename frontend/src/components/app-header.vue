@@ -8,7 +8,6 @@ defineProps<{
 
 const emit = defineEmits<{
   create: [];
-  schedule: [];
 }>();
 
 const auth = useAuthStore();

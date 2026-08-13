@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+          cache-dependency-path: |
+            frontend/yarn.lock
+            backend/yarn.lock
+
+      - name: Install frontend
+        run: yarn install --frozen-lockfile
+        working-directory: frontend
+
+      - name: Build frontend
+        run: yarn build
+        working-directory: frontend
+
+      - name: Install backend
+        run: yarn install --frozen-lockfile
+        working-directory: backend
+
+      - name: Build backend
+        run: yarn build
+        working-directory: backend
+
+  deploy:
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: production
+      cancel-in-progress: false
+
+    steps:
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          command_timeout: 20m
+          script: bash /opt/roundtalk/deploy/deploy.sh

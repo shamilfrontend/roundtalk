@@ -104,11 +104,30 @@ function findSender(
     return byTrack;
   }
 
-  const transceiver = pc
-    .getTransceivers()
-    .find((item) => item.receiver.track.kind === kind);
+  const transceiver = pc.getTransceivers().find((item) => {
+    if (item.stopped) {
+      return false;
+    }
+
+    return item.receiver.track?.kind === kind;
+  });
 
   return transceiver?.sender;
+}
+
+function hasKind(
+  pc: RTCPeerConnection,
+  kind: "audio" | "video",
+): boolean {
+  return pc.getTransceivers().some((item) => {
+    if (item.stopped) {
+      return false;
+    }
+
+    return (
+      item.receiver.track?.kind === kind || item.sender.track?.kind === kind
+    );
+  });
 }
 
 async function attachLocalMedia(
@@ -117,35 +136,41 @@ async function attachLocalMedia(
 ): Promise<boolean> {
   let needsRenegotiate = false;
 
-  if (pc.getTransceivers().length === 0) {
-    pc.addTransceiver("audio", { direction: "sendrecv" });
-    pc.addTransceiver("video", { direction: "sendrecv" });
-    needsRenegotiate = true;
-  }
+  if (stream !== null) {
+    for (const kind of ["audio", "video"] as const) {
+      const track =
+        kind === "audio"
+          ? (stream.getAudioTracks()[0] ?? null)
+          : (stream.getVideoTracks()[0] ?? null);
 
-  if (stream === null) {
-    return needsRenegotiate;
+      if (track === null) {
+        continue;
+      }
+
+      const sender = findSender(pc, kind);
+
+      if (sender === undefined) {
+        pc.addTrack(track, stream);
+        needsRenegotiate = true;
+        continue;
+      }
+
+      if (sender.track?.id === track.id) {
+        continue;
+      }
+
+      const hadTrack = sender.track !== null;
+      await sender.replaceTrack(track);
+
+      if (!hadTrack || kind === "video") {
+        needsRenegotiate = true;
+      }
+    }
   }
 
   for (const kind of ["audio", "video"] as const) {
-    const track =
-      kind === "audio"
-        ? (stream.getAudioTracks()[0] ?? null)
-        : (stream.getVideoTracks()[0] ?? null);
-    const sender = findSender(pc, kind);
-
-    if (sender === undefined || track === null) {
-      continue;
-    }
-
-    if (sender.track?.id === track.id) {
-      continue;
-    }
-
-    const hadTrack = sender.track !== null;
-    await sender.replaceTrack(track);
-
-    if (!hadTrack || kind === "video") {
+    if (!hasKind(pc, kind)) {
+      pc.addTransceiver(kind, { direction: "sendrecv" });
       needsRenegotiate = true;
     }
   }
@@ -157,27 +182,19 @@ function mergeRemoteTracks(
   prev: MediaStream | undefined,
   incoming: MediaStreamTrack,
 ): MediaStream {
-  const tracks: MediaStreamTrack[] = [];
+  const stream = prev ?? new MediaStream();
 
-  if (prev !== undefined) {
-    for (const track of prev.getTracks()) {
-      if (track.readyState !== "live") {
-        continue;
-      }
-
-      if (track.kind === incoming.kind || track.id === incoming.id) {
-        continue;
-      }
-
-      tracks.push(track);
+  for (const track of [...stream.getTracks()]) {
+    if (track.kind === incoming.kind || track.id === incoming.id) {
+      stream.removeTrack(track);
     }
   }
 
   if (incoming.readyState === "live") {
-    tracks.push(incoming);
+    stream.addTrack(incoming);
   }
 
-  return new MediaStream(tracks);
+  return stream;
 }
 
 export function useWebrtc(): WebrtcState {

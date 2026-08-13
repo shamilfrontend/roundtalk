@@ -22,33 +22,16 @@ const props = defineProps<{
 }>();
 
 const videoRef = ref<HTMLVideoElement | null>(null);
+const audioRef = ref<HTMLAudioElement | null>(null);
 const speaking = ref(false);
+const needsUnlock = ref(false);
+const liveVideoId = ref("");
+const liveAudioId = ref("");
 
 const mirror = computed(() => props.isSelf && props.isScreenShare !== true);
+const showVideo = computed(() => liveVideoId.value.length > 0);
 
-const showVideo = computed(() => {
-  if (props.stream === null) {
-    return false;
-  }
-
-  if (props.isScreenShare !== true && props.participant.isCameraOff) {
-    return false;
-  }
-
-  return props.stream
-    .getVideoTracks()
-    .some((track) => track.readyState === "live");
-});
-
-const audioTrackId = computed(() => {
-  const track = props.stream?.getAudioTracks()[0];
-
-  if (track === undefined || track.readyState !== "live") {
-    return "";
-  }
-
-  return track.id;
-});
+let boundStream: MediaStream | null = null;
 
 let audioContext: AudioContext | null = null;
 let analyser: AnalyserNode | null = null;
@@ -173,6 +156,39 @@ async function startMeter(stream: MediaStream): Promise<void> {
   }
 }
 
+function syncLiveTracks(stream: MediaStream | null): void {
+  const video = stream
+    ?.getVideoTracks()
+    .find((track) => track.readyState === "live");
+  const audio = stream
+    ?.getAudioTracks()
+    .find((track) => track.readyState === "live");
+
+  liveVideoId.value = video?.id ?? "";
+  liveAudioId.value = audio?.id ?? "";
+}
+
+function bindStreamEvents(stream: MediaStream | null): void {
+  if (boundStream !== null) {
+    boundStream.removeEventListener("addtrack", onStreamTracks);
+    boundStream.removeEventListener("removetrack", onStreamTracks);
+  }
+
+  boundStream = stream;
+
+  if (stream !== null) {
+    stream.addEventListener("addtrack", onStreamTracks);
+    stream.addEventListener("removetrack", onStreamTracks);
+  }
+
+  syncLiveTracks(stream);
+}
+
+function onStreamTracks(): void {
+  syncLiveTracks(props.stream);
+  void bindMedia();
+}
+
 async function applySink(
   el: HTMLMediaElement,
   sinkId: string,
@@ -196,27 +212,51 @@ async function applySink(
   }
 }
 
+async function playEl(el: HTMLMediaElement | null): Promise<boolean> {
+  if (el === null) {
+    return true;
+  }
+
+  try {
+    await el.play();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function bindMedia(): Promise<void> {
+  const video = videoRef.value;
+  const audio = audioRef.value;
+
+  if (video !== null && video.srcObject !== props.stream) {
+    video.srcObject = props.stream;
+  }
+
+  if (audio !== null && audio.srcObject !== props.stream) {
+    audio.srcObject = props.stream;
+  }
+
+  if (audio !== null) {
+    void applySink(audio, props.audioOutputId ?? "");
+  }
+
+  const videoOk = await playEl(video);
+  const audioOk = props.isSelf ? true : await playEl(audio);
+
+  needsUnlock.value = !videoOk || !audioOk;
+}
+
+function unlockPlayback(): void {
+  needsUnlock.value = false;
+  void bindMedia();
+}
+
 watch(
-  [
-    () => props.stream,
-    videoRef,
-    () => props.audioOutputId,
-    () => props.isSelf,
-  ],
+  [() => props.stream, videoRef, audioRef, () => props.audioOutputId],
   () => {
-    const el = videoRef.value;
-
-    if (el === null) {
-      return;
-    }
-
-    el.srcObject = props.stream;
-
-    if (!props.isSelf) {
-      void applySink(el, props.audioOutputId ?? "");
-    }
-
-    void el.play().catch(() => undefined);
+    bindStreamEvents(props.stream);
+    void bindMedia();
   },
   { immediate: true },
 );
@@ -224,7 +264,7 @@ watch(
 watch(
   [
     () => props.stream,
-    audioTrackId,
+    liveAudioId,
     () => props.participant.isMuted,
     () => props.isScreenShare,
   ],
@@ -233,7 +273,7 @@ watch(
       props.stream === null ||
       props.participant.isMuted ||
       props.isScreenShare === true ||
-      audioTrackId.value.length === 0
+      liveAudioId.value.length === 0
     ) {
       stopMeter();
       return;
@@ -244,17 +284,8 @@ watch(
   { immediate: true },
 );
 
-function unlockPlayback(): void {
-  const el = videoRef.value;
-
-  if (el === null) {
-    return;
-  }
-
-  void el.play().catch(() => undefined);
-}
-
 onUnmounted(() => {
+  bindStreamEvents(null);
   stopMeter();
 });
 </script>
@@ -271,12 +302,24 @@ onUnmounted(() => {
         class="tile-video"
         :class="{ hidden: !showVideo }"
         autoplay
+        muted
         playsinline
-        :muted="isSelf"
+        webkit-playsinline
+      />
+
+      <audio
+        v-if="!isSelf"
+        ref="audioRef"
+        class="tile-audio"
+        autoplay
       />
 
       <div v-if="!showVideo" class="avatar">
         {{ initials(participant.displayName) }}
+      </div>
+
+      <div v-if="needsUnlock && !isSelf" class="unlock">
+        Нажмите, чтобы услышать
       </div>
 
       <span
@@ -357,6 +400,23 @@ onUnmounted(() => {
 
 .tile-video.hidden {
   opacity: 0;
+}
+
+.tile-audio {
+  display: none;
+}
+
+.unlock {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  font-size: 14px;
+  text-align: center;
 }
 
 .avatar {

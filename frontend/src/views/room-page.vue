@@ -238,6 +238,7 @@ watch(
       roomStore.setMediaState(isMuted.value, isCameraOff.value);
     }
   },
+  { immediate: true },
 );
 
 watch(wasEnded, (ended) => {

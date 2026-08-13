@@ -80,26 +80,37 @@ export function useLocalMedia(): LocalMediaState {
   async function start(): Promise<void> {
     error.value = null;
 
-    let next = await getStream({ audio: true, video: true });
+    const audio = await getStream({ audio: true, video: false });
+    const video = await getStream({ audio: false, video: true });
 
-    if (next === null) {
-      next = await getStream({ audio: true, video: false });
-    }
-
-    if (next === null) {
-      next = await getStream({ audio: false, video: true });
-    }
-
-    if (next === null) {
+    if (audio === null && video === null) {
       error.value = "Нет доступа к камере или микрофону. Можно войти без медиа.";
       await refreshDevices();
       return;
+    }
+
+    const next = new MediaStream();
+
+    if (audio !== null) {
+      for (const track of audio.getAudioTracks()) {
+        next.addTrack(track);
+      }
+    }
+
+    if (video !== null) {
+      for (const track of video.getVideoTracks()) {
+        next.addTrack(track);
+      }
     }
 
     stopTracks(stream.value);
     stream.value = next;
     applyEnabled();
     await refreshDevices();
+
+    if (next.getAudioTracks().length === 0) {
+      error.value = "Нет доступа к микрофону";
+    }
   }
 
   function applyEnabled(): void {
@@ -135,8 +146,8 @@ export function useLocalMedia(): LocalMediaState {
     const current = stream.value;
     const constraint =
       kind === "audio"
-        ? { audio: { deviceId: { exact: deviceId } }, video: false }
-        : { audio: false, video: { deviceId: { exact: deviceId } } };
+        ? { audio: { deviceId: { ideal: deviceId } }, video: false }
+        : { audio: false, video: { deviceId: { ideal: deviceId } } };
 
     const replacement = await getStream(constraint);
 
@@ -154,6 +165,8 @@ export function useLocalMedia(): LocalMediaState {
       error.value = "Не удалось переключить устройство";
       return;
     }
+
+    error.value = null;
 
     if (current === null) {
       stream.value = replacement;
@@ -176,12 +189,10 @@ export function useLocalMedia(): LocalMediaState {
   }
 
   async function selectAudio(deviceId: string): Promise<void> {
-    selectedAudioId.value = deviceId;
     await replaceTrack("audio", deviceId);
   }
 
   async function selectVideo(deviceId: string): Promise<void> {
-    selectedVideoId.value = deviceId;
     await replaceTrack("video", deviceId);
   }
 

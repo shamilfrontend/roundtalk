@@ -831,6 +831,7 @@ function sendChat(text: string): void {
   height: 100%;
   overflow: hidden;
   background: $color-bg;
+  --toolbar-space: 96px;
 }
 
 .status,
@@ -842,6 +843,7 @@ function sendChat(text: string): void {
   justify-content: center;
   gap: 16px;
   padding: 24px;
+  padding-bottom: max(24px, env(safe-area-inset-bottom, 0px));
   text-align: center;
 }
 
@@ -903,7 +905,7 @@ h1 {
 
 .stage {
   height: 100%;
-  padding: 72px 16px 96px;
+  padding: 72px 16px var(--toolbar-space);
 }
 
 .stage.sharing {
@@ -956,7 +958,7 @@ h1 {
 .pip {
   position: absolute;
   right: 24px;
-  bottom: 100px;
+  bottom: calc(var(--toolbar-space) + 12px);
   width: 220px;
   height: 140px;
   z-index: 2;
@@ -971,7 +973,7 @@ h1 {
   position: absolute;
   top: 64px;
   right: 16px;
-  bottom: 96px;
+  bottom: var(--toolbar-space);
   z-index: 4;
 }
 
@@ -1009,11 +1011,48 @@ h1 {
 }
 
 @media (max-width: 720px) {
+  .room {
+    --toolbar-space: calc(140px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .top {
+    top: 8px;
+    left: 12px;
+    right: 12px;
+    gap: 8px;
+  }
+
+  .top-info {
+    min-width: 0;
+    gap: 8px;
+  }
+
+  .top h1 {
+    max-width: 42vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 16px;
+  }
+
+  .toasts {
+    top: 56px;
+  }
+
+  .stage {
+    padding: 56px 10px var(--toolbar-space);
+  }
+
+  .grid {
+    grid-template-columns: minmax(140px, 1fr);
+    gap: 8px;
+  }
+
   .sidebar {
-    inset: 0;
     top: 0;
     right: 0;
-    bottom: 0;
+    left: 0;
+    bottom: var(--toolbar-space);
     border-radius: 0;
   }
 
@@ -1021,12 +1060,14 @@ h1 {
     right: 12px;
     width: 140px;
     height: 96px;
-    bottom: 88px;
   }
 
   .bar {
-    width: calc(100% - 16px);
-    bottom: 8px;
+    left: 8px;
+    right: 8px;
+    bottom: 0;
+    width: auto;
+    transform: none;
   }
 
   .stage.sharing {
@@ -1043,6 +1084,65 @@ h1 {
     width: 140px;
     height: 96px;
     min-height: 96px;
+  }
+}
+
+@media (min-width: 721px) and (max-width: 1024px) {
+  .room {
+    --toolbar-space: calc(88px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .top h1 {
+    max-width: 46vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 20px;
+  }
+
+  .stage {
+    padding: 72px 16px var(--toolbar-space);
+  }
+
+  .grid {
+    grid-template-columns: repeat(2, minmax(200px, 1fr));
+  }
+
+  .sidebar {
+    width: 360px;
+    bottom: var(--toolbar-space);
+  }
+
+  .pip {
+    width: 180px;
+    height: 120px;
+    right: 16px;
+  }
+
+  .bar {
+    left: 16px;
+    right: 16px;
+    bottom: 0;
+    width: auto;
+    transform: none;
+  }
+}
+
+@media (min-width: 721px) and (max-width: 1024px) and (orientation: portrait) {
+  .stage.sharing {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 1fr) 110px;
+  }
+
+  .share-rail {
+    flex-direction: row;
+    overflow: auto;
+  }
+
+  .share-rail :deep(.tile) {
+    width: 160px;
+    height: 110px;
+    min-height: 110px;
   }
 }
 </style>

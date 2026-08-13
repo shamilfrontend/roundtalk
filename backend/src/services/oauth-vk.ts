@@ -43,7 +43,7 @@ export function buildVkAuthorizeUrl(state: string, challenge: string): string {
   url.searchParams.set("response_type", "code");
   url.searchParams.set("client_id", clientId);
   url.searchParams.set("redirect_uri", redirectUri);
-  url.searchParams.set("scope", "email");
+  url.searchParams.set("scope", "vkid.personal_info email");
   url.searchParams.set("state", state);
   url.searchParams.set("code_challenge", challenge);
   url.searchParams.set("code_challenge_method", "S256");
@@ -57,6 +57,45 @@ function readVkUser(payload: Record<string, unknown>): Record<string, unknown> {
   }
 
   return payload;
+}
+
+function readJwtPayload(token: unknown): Record<string, unknown> | undefined {
+  if (typeof token !== "string") {
+    return undefined;
+  }
+
+  const parts = token.split(".");
+  const payloadPart = parts[1];
+
+  if (parts.length < 2 || payloadPart === undefined) {
+    return undefined;
+  }
+
+  try {
+    const json = Buffer.from(payloadPart, "base64url").toString("utf8");
+    const payload: unknown = JSON.parse(json);
+
+    return isRecord(payload) ? payload : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function readEmail(...sources: Record<string, unknown>[]): string | undefined {
+  for (const source of sources) {
+    const email = source.email;
+
+    if (
+      typeof email === "string" &&
+      email.includes("@") &&
+      !email.includes("*") &&
+      email.trim().length > 0
+    ) {
+      return email.trim().toLowerCase();
+    }
+  }
+
+  return undefined;
 }
 
 export async function fetchVkProfile(input: {
@@ -115,12 +154,12 @@ export async function fetchVkProfile(input: {
   }
 
   const user = readVkUser(infoPayload);
-  const idValue = user.user_id ?? user.id;
+  const idTokenPayload = readJwtPayload(tokenPayload.id_token);
+  const idValue = user.user_id ?? user.id ?? tokenPayload.user_id;
   const vkId =
     typeof idValue === "string" || typeof idValue === "number"
       ? String(idValue)
       : undefined;
-  const email = typeof user.email === "string" ? user.email : undefined;
   const firstName = typeof user.first_name === "string" ? user.first_name : "";
   const lastName = typeof user.last_name === "string" ? user.last_name : "";
   const name = `${firstName} ${lastName}`.trim() || "Пользователь";
@@ -129,9 +168,14 @@ export async function fetchVkProfile(input: {
     throw new HttpError(502, "oauth_provider_error", "Не удалось войти через VK");
   }
 
-  if (email === undefined || email.length === 0) {
-    throw new HttpError(400, "email_required", "Разрешите доступ к email");
+  const emailSources = [user, tokenPayload];
+
+  if (idTokenPayload !== undefined) {
+    emailSources.push(idTokenPayload);
   }
+
+  const email =
+    readEmail(...emailSources) ?? `vk-${vkId}@users.roundtalk.invalid`;
 
   return { vkId, email, name };
 }

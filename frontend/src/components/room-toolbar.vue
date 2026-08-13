@@ -29,114 +29,122 @@ const emit = defineEmits<{
 
 <template>
   <nav class="toolbar" aria-label="Управление звонком">
-    <button
-      class="round"
-      type="button"
-      data-tooltip="Чат"
-      :class="{ active: sidebar === 'chat' }"
-      @click="emit('toggleChat')"
-    >
-      <FontAwesomeIcon icon="comment" />
-    </button>
-
-    <button
-      class="round"
-      type="button"
-      :data-tooltip="
-        shareDisabled
-          ? 'Демонстрация уже идёт'
-          : isSharing
-            ? 'Остановить демонстрацию'
-            : 'Демонстрация экрана'
-      "
-      :class="{ active: isSharing }"
-      :disabled="shareDisabled"
-      @click="emit('toggleShare')"
-    >
-      <FontAwesomeIcon icon="desktop" />
-    </button>
-
-    <button
-      class="round"
-      type="button"
-      data-tooltip="Поднять руку"
-      :class="{ active: isHandRaised }"
-      @click="emit('toggleHand')"
-    >
-      <FontAwesomeIcon icon="hand" />
-    </button>
-
-    <div class="react-wrap">
+    <div class="secondary">
+      <div class="cluster extra">
       <button
         class="round"
         type="button"
-        data-tooltip="Реакции"
-        :class="{ active: reactionsOpen }"
-        @click="emit('toggleReactions')"
+        data-tooltip="Чат"
+        :class="{ active: sidebar === 'chat' }"
+        @click="emit('toggleChat')"
       >
-        <FontAwesomeIcon icon="face-smile" />
+        <FontAwesomeIcon icon="comment" />
       </button>
-      <div v-if="reactionsOpen" class="emoji-pop" role="menu">
+
+      <button
+        class="round"
+        type="button"
+        :data-tooltip="
+          shareDisabled
+            ? 'Демонстрация уже идёт'
+            : isSharing
+              ? 'Остановить демонстрацию'
+              : 'Демонстрация экрана'
+        "
+        :class="{ active: isSharing }"
+        :disabled="shareDisabled"
+        @click="emit('toggleShare')"
+      >
+        <FontAwesomeIcon icon="desktop" />
+      </button>
+
+      <button
+        class="round"
+        type="button"
+        data-tooltip="Поднять руку"
+        :class="{ active: isHandRaised }"
+        @click="emit('toggleHand')"
+      >
+        <FontAwesomeIcon icon="hand" />
+      </button>
+
+      <div class="react-wrap">
         <button
-          v-for="emoji in REACTION_EMOJIS"
-          :key="emoji"
-          class="emoji"
+          class="round"
           type="button"
-          @click="emit('react', emoji)"
+          data-tooltip="Реакции"
+          :class="{ active: reactionsOpen }"
+          @click="emit('toggleReactions')"
         >
-          {{ emoji }}
+          <FontAwesomeIcon icon="face-smile" />
         </button>
+        <div v-if="reactionsOpen" class="emoji-pop" role="menu">
+          <button
+            v-for="emoji in REACTION_EMOJIS"
+            :key="emoji"
+            class="emoji"
+            type="button"
+            @click.stop="emit('react', emoji)"
+          >
+            {{ emoji }}
+          </button>
+        </div>
       </div>
     </div>
 
-    <button
-      class="round"
-      type="button"
-      data-tooltip="Микрофон"
-      :class="{ danger: isMuted }"
-      @click="emit('toggleMute')"
-    >
-      <FontAwesomeIcon :icon="isMuted ? 'microphone-slash' : 'microphone'" />
-    </button>
+    <div class="cluster extra">
+      <button
+        class="round"
+        type="button"
+        data-tooltip="Участники"
+        :class="{ active: sidebar === 'participants' }"
+        @click="emit('toggleParticipants')"
+      >
+        <FontAwesomeIcon icon="users" />
+      </button>
 
-    <button
-      class="round"
-      type="button"
-      data-tooltip="Камера"
-      :class="{ danger: isCameraOff }"
-      @click="emit('toggleCamera')"
-    >
-      <FontAwesomeIcon :icon="isCameraOff ? 'video-slash' : 'video'" />
-    </button>
+      <button
+        class="round"
+        type="button"
+        data-tooltip="Настройки"
+        :class="{ active: settingsOpen }"
+        @click="emit('toggleSettings')"
+      >
+        <FontAwesomeIcon icon="gear" />
+      </button>
+    </div>
+    </div>
 
-    <button
-      class="round hangup"
-      type="button"
-      :data-tooltip="isHost ? 'Завершить для всех' : 'Выйти'"
-      @click="emit('hangup')"
-    >
-      <FontAwesomeIcon icon="phone-slash" />
-    </button>
+    <div class="cluster main">
+      <button
+        class="round"
+        type="button"
+        data-tooltip="Микрофон"
+        :class="{ danger: isMuted }"
+        @click="emit('toggleMute')"
+      >
+        <FontAwesomeIcon :icon="isMuted ? 'microphone-slash' : 'microphone'" />
+      </button>
 
-    <button
-      class="round"
-      type="button"
-      data-tooltip="Участники"
-      :class="{ active: sidebar === 'participants' }"
-      @click="emit('toggleParticipants')"
-    >
-      <FontAwesomeIcon icon="users" />
-    </button>
+      <button
+        class="round"
+        type="button"
+        data-tooltip="Камера"
+        :class="{ danger: isCameraOff }"
+        @click="emit('toggleCamera')"
+      >
+        <FontAwesomeIcon :icon="isCameraOff ? 'video-slash' : 'video'" />
+      </button>
 
-    <button
-      class="round"
-      type="button"
-      data-tooltip="Настройки"
-      :class="{ active: settingsOpen }"
-      @click="emit('toggleSettings')"
-    >
-      <FontAwesomeIcon icon="gear" />
-    </button>
+      <button
+        class="round hangup"
+        type="button"
+        :data-tooltip="isHost ? 'Завершить для всех' : 'Выйти'"
+        @click="emit('hangup')"
+      >
+        <FontAwesomeIcon icon="phone-slash" />
+      </button>
+    </div>
   </nav>
 </template>
 
@@ -149,6 +157,11 @@ const emit = defineEmits<{
   border-radius: 999px;
   background: $color-surface;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.secondary,
+.cluster {
+  display: contents;
 }
 
 .round {
@@ -217,21 +230,66 @@ const emit = defineEmits<{
 
 @media (max-width: 720px) {
   .toolbar {
-    gap: 4px;
-    padding: 8px;
-    width: calc(100% - 16px);
-    justify-content: space-between;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    padding: 8px 8px calc(8px + env(safe-area-inset-bottom, 0px));
+    border-radius: 20px;
   }
 
-  .round {
-    width: 40px;
-    height: 40px;
+  .secondary,
+  .cluster {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    width: 100%;
+    gap: 8px;
+  }
+
+  .cluster.extra {
+    width: auto;
+    flex: 1;
+  }
+
+  .cluster.extra .round {
+    width: 44px;
+    height: 44px;
+  }
+
+  .cluster.main .round {
+    width: 52px;
+    height: 52px;
+  }
+
+  .emoji-pop {
+    left: auto;
+    right: -8px;
+    transform: none;
+    flex-wrap: wrap;
+    width: 160px;
+    justify-content: center;
+    border-radius: 16px;
   }
 
   .emoji {
-    width: 32px;
-    height: 32px;
-    font-size: 18px;
+    width: 36px;
+    height: 36px;
+    font-size: 20px;
+  }
+}
+
+@media (min-width: 721px) and (max-width: 1024px) {
+  .toolbar {
+    width: 100%;
+    gap: 10px;
+    justify-content: space-around;
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
+    border-radius: 20px;
+  }
+
+  .round {
+    width: 48px;
+    height: 48px;
   }
 }
 </style>

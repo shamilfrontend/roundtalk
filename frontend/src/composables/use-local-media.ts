@@ -62,10 +62,6 @@ export function useLocalMedia(): LocalMediaState {
 
     selectedAudioId.value = audioTrack?.getSettings().deviceId ?? "";
     selectedVideoId.value = videoTrack?.getSettings().deviceId ?? "";
-
-    if (selectedOutputId.value === "" && audioOutputs.value[0] !== undefined) {
-      selectedOutputId.value = audioOutputs.value[0].deviceId;
-    }
   }
 
   async function getStream(constraints: MediaStreamConstraints): Promise<MediaStream | null> {

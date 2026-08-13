@@ -111,10 +111,10 @@ function findSender(
   return transceiver?.sender;
 }
 
-function attachLocalMedia(
+async function attachLocalMedia(
   pc: RTCPeerConnection,
   stream: MediaStream | null,
-): boolean {
+): Promise<boolean> {
   let needsRenegotiate = false;
 
   if (pc.getTransceivers().length === 0) {
@@ -138,15 +138,46 @@ function attachLocalMedia(
       continue;
     }
 
-    const hadTrack = sender.track !== null;
-    void sender.replaceTrack(track);
+    if (sender.track?.id === track.id) {
+      continue;
+    }
 
-    if (!hadTrack) {
+    const hadTrack = sender.track !== null;
+    await sender.replaceTrack(track);
+
+    if (!hadTrack || kind === "video") {
       needsRenegotiate = true;
     }
   }
 
   return needsRenegotiate;
+}
+
+function mergeRemoteTracks(
+  prev: MediaStream | undefined,
+  incoming: MediaStreamTrack,
+): MediaStream {
+  const tracks: MediaStreamTrack[] = [];
+
+  if (prev !== undefined) {
+    for (const track of prev.getTracks()) {
+      if (track.readyState !== "live") {
+        continue;
+      }
+
+      if (track.kind === incoming.kind || track.id === incoming.id) {
+        continue;
+      }
+
+      tracks.push(track);
+    }
+  }
+
+  if (incoming.readyState === "live") {
+    tracks.push(incoming);
+  }
+
+  return new MediaStream(tracks);
 }
 
 export function useWebrtc(): WebrtcState {
@@ -206,12 +237,12 @@ export function useWebrtc(): WebrtcState {
     };
 
     pc.ontrack = (event) => {
-      const inbound =
-        event.streams[0] ?? new MediaStream([event.track]);
-
       remoteStreams.value = {
         ...remoteStreams.value,
-        [socketId]: inbound,
+        [socketId]: mergeRemoteTracks(
+          remoteStreams.value[socketId],
+          event.track,
+        ),
       };
     };
 
@@ -244,11 +275,6 @@ export function useWebrtc(): WebrtcState {
     };
 
     bindPeerEvents(socketId, pc);
-
-    if (initiator) {
-      attachLocalMedia(pc, localStream.value);
-    }
-
     peers.set(socketId, slot);
 
     return slot;
@@ -286,6 +312,7 @@ export function useWebrtc(): WebrtcState {
     const slot = createPeer(socketId, true);
 
     try {
+      await attachLocalMedia(slot.pc, localStream.value);
       const offer = await slot.pc.createOffer();
       await slot.pc.setLocalDescription(offer);
       await sendLocalSdp(socketId, "offer");
@@ -314,10 +341,18 @@ export function useWebrtc(): WebrtcState {
     const slot = createPeer(fromSocketId, false);
 
     try {
+      if (slot.pc.signalingState === "have-local-offer") {
+        if (slot.initiator) {
+          return;
+        }
+
+        await slot.pc.setLocalDescription({ type: "rollback" });
+      }
+
       await slot.pc.setRemoteDescription({ type: "offer", sdp });
       slot.remoteSet = true;
       await flushIce(slot, fromSocketId);
-      attachLocalMedia(slot.pc, localStream.value);
+      await attachLocalMedia(slot.pc, localStream.value);
 
       const answer = await slot.pc.createAnswer();
       await slot.pc.setLocalDescription(answer);
@@ -370,9 +405,9 @@ export function useWebrtc(): WebrtcState {
     }
   }
 
-  async function renegotiateInitiators(): Promise<void> {
+  async function renegotiateStable(): Promise<void> {
     for (const [socketId, slot] of peers) {
-      if (!slot.initiator || slot.pc.signalingState !== "stable") {
+      if (slot.pc.signalingState !== "stable") {
         continue;
       }
 
@@ -393,13 +428,13 @@ export function useWebrtc(): WebrtcState {
     let needsRenegotiate = false;
 
     for (const slot of peers.values()) {
-      if (attachLocalMedia(slot.pc, stream)) {
+      if (await attachLocalMedia(slot.pc, stream)) {
         needsRenegotiate = true;
       }
     }
 
     if (needsRenegotiate) {
-      await renegotiateInitiators();
+      await renegotiateStable();
     }
   }
 

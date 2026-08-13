@@ -94,6 +94,12 @@ export function useScreenShare(
         audio: false,
       });
 
+      const video = next.getVideoTracks()[0];
+
+      if (video !== undefined) {
+        video.contentHint = "detail";
+      }
+
       stopShare();
       displayStream.value = next;
       bindEnded(next);

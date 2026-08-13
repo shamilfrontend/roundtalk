@@ -166,6 +166,7 @@ h2 {
   display: flex;
   gap: 8px;
   padding: 12px;
+  padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
 }
 
 .people {
@@ -208,8 +209,11 @@ h2 {
 @media (max-width: 720px) {
   .sidebar {
     width: 100%;
-    height: 100%;
     border-radius: 0;
+  }
+
+  .composer {
+    padding-bottom: 12px;
   }
 }
 </style>

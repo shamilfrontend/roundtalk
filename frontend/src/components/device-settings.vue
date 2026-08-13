@@ -115,7 +115,7 @@ function onSelectOutput(event: Event): void {
   z-index: 8;
   display: grid;
   place-items: end center;
-  padding: 0 16px 96px;
+  padding: 0 16px var(--toolbar-space, 96px);
   background: rgba(0, 0, 0, 0.35);
 }
 

@@ -37,6 +37,7 @@ export interface WebrtcHandlers {
 }
 
 const NOTICE_TTL_MS = 3000;
+const REACTION_TTL_MS = 2000;
 const CHAT_TOAST_MAX = 80;
 
 let socket: AppSocket | null = null;
@@ -44,6 +45,7 @@ let webrtcHandlers: WebrtcHandlers | null = null;
 let activeJoin: { roomId: string; displayName: string } | null = null;
 let noticeSeq = 0;
 const noticeTimers = new Map<number, number>();
+const reactionTimers = new Map<string, number>();
 
 function getSocket(): AppSocket {
   if (socket === null) {
@@ -126,6 +128,15 @@ export const useRoomStore = defineStore("room", () => {
     notices.value = [];
   }
 
+  function clearReactions(): void {
+    for (const timer of reactionTimers.values()) {
+      window.clearTimeout(timer);
+    }
+
+    reactionTimers.clear();
+    reactions.value = {};
+  }
+
   function pushNotice(kind: NoticeKind, text: string): void {
     noticeSeq += 1;
     const id = noticeSeq;
@@ -156,7 +167,7 @@ export const useRoomStore = defineStore("room", () => {
     joinedAt.value = null;
     isEnding.value = false;
     screenShareSocketId.value = null;
-    reactions.value = {};
+    clearReactions();
     clearNotices();
     clearError();
   }
@@ -282,13 +293,29 @@ export const useRoomStore = defineStore("room", () => {
 
     instance.on("reaction", (payload) => {
       reactionToken += 1;
+      const socketId = payload.socketId;
+      const prevTimer = reactionTimers.get(socketId);
+
+      if (prevTimer !== undefined) {
+        window.clearTimeout(prevTimer);
+      }
+
       reactions.value = {
         ...reactions.value,
-        [payload.socketId]: {
+        [socketId]: {
           emoji: payload.emoji,
           token: reactionToken,
         },
       };
+
+      const timer = window.setTimeout(() => {
+        const next = { ...reactions.value };
+        delete next[socketId];
+        reactions.value = next;
+        reactionTimers.delete(socketId);
+      }, REACTION_TTL_MS);
+
+      reactionTimers.set(socketId, timer);
     });
 
     instance.on("room-ended", () => {

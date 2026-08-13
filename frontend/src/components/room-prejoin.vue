@@ -113,6 +113,28 @@ watch(
   display: flex;
   flex-direction: column;
   gap: 12px;
+  max-height: 100%;
+}
+
+@media (max-width: 720px) {
+  .prejoin {
+    width: min(420px, calc(100% - 24px));
+    gap: 10px;
+  }
+
+  .preview-media {
+    aspect-ratio: 16 / 11;
+  }
+
+  .btn-join {
+    height: 48px;
+  }
+}
+
+@media (min-width: 721px) and (max-width: 1024px) {
+  .prejoin {
+    width: min(520px, calc(100% - 32px));
+  }
 }
 
 .preview {

@@ -244,6 +244,16 @@ watch(
   { immediate: true },
 );
 
+function unlockPlayback(): void {
+  const el = videoRef.value;
+
+  if (el === null) {
+    return;
+  }
+
+  void el.play().catch(() => undefined);
+}
+
 onUnmounted(() => {
   stopMeter();
 });
@@ -253,6 +263,7 @@ onUnmounted(() => {
   <article
     class="tile"
     :class="{ self: mirror, screen: isScreenShare, speaking }"
+    @click="unlockPlayback"
   >
     <div class="tile-clip">
       <video
@@ -414,6 +425,22 @@ onUnmounted(() => {
   100% {
     opacity: 0;
     transform: translate(-50%, -40px) scale(1.3);
+  }
+}
+
+@media (max-width: 720px) {
+  .tile {
+    min-height: 120px;
+  }
+
+  .name {
+    font-size: 12px;
+  }
+}
+
+@media (min-width: 721px) and (max-width: 1024px) {
+  .tile {
+    min-height: 140px;
   }
 }
 </style>

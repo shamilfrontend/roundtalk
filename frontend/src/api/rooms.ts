@@ -46,6 +46,18 @@ export async function createRoom(
   return data;
 }
 
+export async function updateRoom(
+  roomId: string,
+  payload: CreateRoomPayload,
+): Promise<RoomListItem> {
+  const { data } = await http.patch<RoomListItem>(
+    `/api/rooms/${roomId}`,
+    payload,
+  );
+
+  return data;
+}
+
 export async function endRoom(roomId: string): Promise<RoomListItem> {
   const { data } = await http.post<RoomListItem>(`/api/rooms/${roomId}/end`);
 

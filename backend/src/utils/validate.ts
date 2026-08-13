@@ -50,7 +50,7 @@ export function validateChatText(value: unknown): string {
     throw new HttpError(400, "invalid_message", "Некорректное сообщение");
   }
 
-  const text = value.trim();
+  const text = value.trim().replace(/<[^>]*>/g, "").trim();
 
   if (text.length === 0 || text.length > CHAT_TEXT_MAX) {
     throw new HttpError(

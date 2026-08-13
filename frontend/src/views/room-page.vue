@@ -656,6 +656,14 @@ function sendChat(text: string): void {
       </button>
     </section>
 
+    <section v-else-if="errorCode === 'room-full'" class="status">
+      <h1>В комнате нет мест</h1>
+      <p>Максимум 6 участников</p>
+      <button class="btn btn-primary" type="button" @click="goHome">
+        На главную
+      </button>
+    </section>
+
     <template v-else-if="inRoom">
       <header class="top">
         <div class="top-info">

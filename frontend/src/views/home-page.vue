@@ -7,6 +7,7 @@ import ScheduleDialog from "@/components/schedule-dialog.vue";
 import { formatDateTime, ROOM_STATUS_LABEL } from "@/composables/format";
 import { useAuthStore } from "@/stores/auth";
 import { useMeetingsStore } from "@/stores/meetings";
+import type { RoomListItem } from "@/types/room";
 
 const FEATURES = [
   {
@@ -38,6 +39,21 @@ const meetings = useMeetingsStore();
 const link = ref("");
 const joinError = ref<string | null>(null);
 const scheduleOpen = ref(false);
+const editingRoom = ref<RoomListItem | null>(null);
+
+const scheduleInitial = computed(() => {
+  const room = editingRoom.value;
+
+  if (room === null || room.scheduledAt === null) {
+    return undefined;
+  }
+
+  return {
+    title: room.title,
+    scheduledAt: room.scheduledAt,
+    durationMin: room.durationMin,
+  };
+});
 
 const visibleMeetings = computed(() =>
   meetings.items.filter((item) => item.status !== "ended"),
@@ -73,7 +89,22 @@ function openSchedule(): void {
     return;
   }
 
+  editingRoom.value = null;
   scheduleOpen.value = true;
+}
+
+function openEdit(item: RoomListItem): void {
+  if (item.status !== "scheduled" || item.scheduledAt === null) {
+    return;
+  }
+
+  editingRoom.value = item;
+  scheduleOpen.value = true;
+}
+
+function closeSchedule(): void {
+  scheduleOpen.value = false;
+  editingRoom.value = null;
 }
 
 async function onSchedule(payload: {
@@ -81,9 +112,20 @@ async function onSchedule(payload: {
   scheduledAt: string;
   durationMin: number;
 }): Promise<void> {
+  if (meetings.isUpdating || meetings.isCreating) {
+    return;
+  }
+
   try {
-    await meetings.scheduleMeeting(payload);
-    scheduleOpen.value = false;
+    const room = editingRoom.value;
+
+    if (room !== null) {
+      await meetings.updateScheduled(room.roomId, payload);
+    } else {
+      await meetings.scheduleMeeting(payload);
+    }
+
+    closeSchedule();
   } catch {
     return;
   }
@@ -184,16 +226,19 @@ function joinByLink(): void {
         Пока нет встреч — создайте или запланируйте
       </p>
       <div v-else class="cards">
-        <RouterLink
+        <article
           v-for="item in visibleMeetings"
           :key="item.roomId"
           class="card"
-          :to="{ name: 'room', params: { roomId: item.roomId } }"
         >
           <span class="badge" :data-status="item.status">
             {{ ROOM_STATUS_LABEL[item.status] ?? item.status }}
           </span>
-          <h3>{{ item.title }}</h3>
+          <h3>
+            <RouterLink :to="{ name: 'room', params: { roomId: item.roomId } }">
+              {{ item.title }}
+            </RouterLink>
+          </h3>
           <p>
             {{
               item.scheduledAt
@@ -202,13 +247,23 @@ function joinByLink(): void {
             }}
           </p>
           <p class="muted">{{ item.durationMin }} мин</p>
-        </RouterLink>
+          <button
+            v-if="item.status === 'scheduled'"
+            class="btn btn-ghost card-edit"
+            type="button"
+            :disabled="meetings.isUpdating"
+            @click="openEdit(item)"
+          >
+            Изменить
+          </button>
+        </article>
       </div>
     </section>
 
     <ScheduleDialog
       v-if="scheduleOpen"
-      @close="scheduleOpen = false"
+      :initial="scheduleInitial"
+      @close="closeSchedule"
       @submit="onSchedule"
     />
   </div>
@@ -391,16 +446,28 @@ function joinByLink(): void {
 }
 
 .card {
-  display: block;
+  display: flex;
+  flex-direction: column;
   background: $color-surface;
   border-radius: 16px;
   padding: 16px;
-  text-decoration: none;
 }
 
 .card h3 {
   margin: 8px 0 4px;
   font-size: 18px;
+}
+
+.card h3 a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.card-edit {
+  align-self: flex-start;
+  margin-top: 12px;
+  height: 36px;
+  padding: 0 12px;
 }
 
 .card p {

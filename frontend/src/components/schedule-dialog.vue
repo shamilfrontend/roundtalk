@@ -2,21 +2,43 @@
 import { computed, ref } from "vue";
 import { toDateTimeLocalValue } from "@/composables/format";
 
-const DURATION_OPTIONS = [15, 30, 45, 60, 90, 120];
+const DURATION_OPTIONS: number[] = [15, 30, 45, 60, 90, 120];
+
+interface ScheduleInitial {
+  title: string;
+  scheduledAt: string;
+  durationMin: number;
+}
+
+const props = defineProps<{
+  initial?: ScheduleInitial;
+}>();
 
 const emit = defineEmits<{
   close: [];
   submit: [payload: { title: string; scheduledAt: string; durationMin: number }];
 }>();
 
-const title = ref("Встреча");
-const durationMin = ref(60);
+const isEdit = computed(() => props.initial !== undefined);
+
+const title = ref(props.initial?.title ?? "Встреча");
+const durationMin = ref(props.initial?.durationMin ?? 60);
 const scheduledAt = ref(
-  toDateTimeLocalValue(new Date(Date.now() + 60 * 60 * 1000)),
+  props.initial !== undefined
+    ? toDateTimeLocalValue(new Date(props.initial.scheduledAt))
+    : toDateTimeLocalValue(new Date(Date.now() + 60 * 60 * 1000)),
 );
 const error = ref<string | null>(null);
 
 const minValue = computed(() => toDateTimeLocalValue(new Date()));
+
+const durationOptions = computed(() => {
+  if (DURATION_OPTIONS.includes(durationMin.value)) {
+    return DURATION_OPTIONS;
+  }
+
+  return [...DURATION_OPTIONS, durationMin.value].sort((a, b) => a - b);
+});
 
 function onSubmit(): void {
   const name = title.value.trim();
@@ -45,7 +67,7 @@ function onSubmit(): void {
   <div class="overlay" @click.self="emit('close')">
     <form class="dialog" @submit.prevent="onSubmit">
       <div class="dialog-head">
-        <h2>Запланировать встречу</h2>
+        <h2>{{ isEdit ? "Изменить встречу" : "Запланировать встречу" }}</h2>
         <button class="icon-btn" type="button" @click="emit('close')">
           <FontAwesomeIcon icon="xmark" />
         </button>
@@ -69,7 +91,11 @@ function onSubmit(): void {
       <label class="label">
         Длительность
         <select v-model.number="durationMin" class="field">
-          <option v-for="item in DURATION_OPTIONS" :key="item" :value="item">
+          <option
+            v-for="item in durationOptions"
+            :key="item"
+            :value="item"
+          >
             {{ item }} мин
           </option>
         </select>
@@ -81,7 +107,9 @@ function onSubmit(): void {
         <button class="btn btn-ghost" type="button" @click="emit('close')">
           Отмена
         </button>
-        <button class="btn btn-primary" type="submit">Создать</button>
+        <button class="btn btn-primary" type="submit">
+          {{ isEdit ? "Сохранить" : "Создать" }}
+        </button>
       </div>
     </form>
   </div>

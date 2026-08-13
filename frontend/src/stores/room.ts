@@ -17,7 +17,7 @@ type AppSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 
 type RoomPhase = "idle" | "joining" | "joined";
 
-type NoticeKind = "join" | "leave" | "chat";
+type NoticeKind = "join" | "leave" | "chat" | "info";
 
 export interface RoomNotice {
   id: number;
@@ -311,6 +311,7 @@ export const useRoomStore = defineStore("room", () => {
 
     instance.on("error", (payload) => {
       if (payload.code === "rate_limited" && phase.value === "joined") {
+        pushNotice("info", "Слишком часто");
         return;
       }
 

@@ -48,7 +48,21 @@ jobs:
       cancel-in-progress: false
 
     steps:
-      - name: Deploy to VPS
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Copy files to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          source: "backend,frontend,coturn,Caddyfile,docker-compose.yml,deploy"
+          target: /opt/roundtalk
+          overwrite: true
+
+      - name: Rebuild stack
         uses: appleboy/ssh-action@v1.2.2
         with:
           host: ${{ secrets.DEPLOY_HOST }}
@@ -56,4 +70,6 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           command_timeout: 20m
-          script: bash /opt/roundtalk/deploy/deploy.sh
+          script: |
+            chmod +x /opt/roundtalk/deploy/deploy.sh
+            bash /opt/roundtalk/deploy/deploy.sh

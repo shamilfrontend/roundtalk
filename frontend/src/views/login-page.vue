@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import { RouterLink, useRoute } from "vue-router";
 import { getAuthApiUrl } from "@/api/auth";
 
@@ -12,6 +12,8 @@ const ERROR_TEXT: Record<string, string> = {
 const route = useRoute();
 const yandexUrl = getAuthApiUrl("/api/auth/yandex");
 const vkUrl = getAuthApiUrl("/api/auth/vk");
+const privacyAccepted = ref(false);
+const privacyError = ref<string | null>(null);
 
 const errorText = computed(() => {
   const code = route.query.error;
@@ -22,6 +24,16 @@ const errorText = computed(() => {
 
   return ERROR_TEXT[code] ?? "Не удалось войти";
 });
+
+function onOauthClick(event: MouseEvent): void {
+  if (privacyAccepted.value) {
+    privacyError.value = null;
+    return;
+  }
+
+  event.preventDefault();
+  privacyError.value = "Примите политику конфиденциальности";
+}
 </script>
 
 <template>
@@ -35,8 +47,25 @@ const errorText = computed(() => {
       </p>
 
       <p v-if="errorText" class="error">{{ errorText }}</p>
+      <p v-if="privacyError" class="error">{{ privacyError }}</p>
 
-      <a class="oauth" :href="yandexUrl">
+      <label class="privacy">
+        <input v-model="privacyAccepted" type="checkbox" />
+        <span>
+          Я принимаю
+          <RouterLink :to="{ name: 'privacy' }" @click.stop>
+            политику конфиденциальности
+          </RouterLink>
+        </span>
+      </label>
+
+      <a
+        class="oauth"
+        :class="{ disabled: !privacyAccepted }"
+        :href="yandexUrl"
+        :aria-disabled="!privacyAccepted"
+        @click="onOauthClick"
+      >
         <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
           <rect width="24" height="24" rx="6" fill="#FC3F1D" />
           <path
@@ -47,7 +76,13 @@ const errorText = computed(() => {
         Войти через Яндекс
       </a>
 
-      <a class="oauth" :href="vkUrl">
+      <a
+        class="oauth"
+        :class="{ disabled: !privacyAccepted }"
+        :href="vkUrl"
+        :aria-disabled="!privacyAccepted"
+        @click="onOauthClick"
+      >
         <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
           <rect width="24" height="24" rx="6" fill="#0077FF" />
           <path
@@ -102,6 +137,25 @@ h1 {
   color: $color-danger;
 }
 
+.privacy {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 4px 0;
+  color: $color-text-secondary;
+  font-size: 14px;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.privacy input {
+  margin-top: 3px;
+}
+
+.privacy a {
+  color: $color-accent;
+}
+
 .oauth {
   display: flex;
   align-items: center;
@@ -113,7 +167,11 @@ h1 {
   text-decoration: none;
 }
 
-.oauth:hover {
+.oauth.disabled {
+  opacity: 0.55;
+}
+
+.oauth:hover:not(.disabled) {
   background: #353637;
 }
 </style>

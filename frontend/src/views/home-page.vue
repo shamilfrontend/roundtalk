@@ -3,6 +3,7 @@ import { computed, ref, watch } from "vue";
 import { RouterLink, useRouter } from "vue-router";
 import { parseRoomLink } from "@/api/rooms";
 import AppHeader from "@/components/app-header.vue";
+import HomeExtras from "@/components/home-extras.vue";
 import ScheduleDialog from "@/components/schedule-dialog.vue";
 import { formatDateTime, ROOM_STATUS_LABEL } from "@/composables/format";
 import { useAuthStore } from "@/stores/auth";
@@ -23,7 +24,7 @@ const FEATURES = [
   {
     icon: "comments",
     title: "Чат и экран",
-    text: "Переписка в комнате и демонстрация экрана одному участнику",
+    text: "Переписка в комнате и один шаринг экрана на комнату",
   },
   {
     icon: "unlock",
@@ -260,6 +261,8 @@ function joinByLink(): void {
       </div>
     </section>
 
+    <HomeExtras />
+
     <ScheduleDialog
       v-if="scheduleOpen"
       :initial="scheduleInitial"
@@ -272,7 +275,6 @@ function joinByLink(): void {
 <style scoped lang="scss">
 .home {
   min-height: 100%;
-  padding-bottom: 64px;
 }
 
 .hero {

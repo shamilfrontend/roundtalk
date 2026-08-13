@@ -1,6 +1,7 @@
 import { library } from "@fortawesome/fontawesome-svg-core";
 import {
   faCalendar,
+  faChevronDown,
   faCircleCheck,
   faComment,
   faComments,
@@ -27,6 +28,7 @@ import {
 
 library.add(
   faCalendar,
+  faChevronDown,
   faCircleCheck,
   faComment,
   faComments,

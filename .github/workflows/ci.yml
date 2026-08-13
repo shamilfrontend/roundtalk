@@ -51,16 +51,29 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Copy files to VPS
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          port: ${{ secrets.DEPLOY_PORT || 22 }}
-          source: "backend,frontend,coturn,Caddyfile,docker-compose.yml,deploy"
-          target: /opt/roundtalk
-          overwrite: true
+      - name: Sync files to VPS
+        env:
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          HOST: ${{ secrets.DEPLOY_HOST }}
+          USER: ${{ secrets.DEPLOY_USER }}
+          PORT: ${{ secrets.DEPLOY_PORT }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          umask 077
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          PORT="${PORT:-22}"
+          rsync -az --delete \
+            -e "ssh -i ~/.ssh/deploy_key -p ${PORT} -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new" \
+            --exclude '.env' \
+            --exclude '.git' \
+            --exclude 'node_modules' \
+            --exclude 'frontend/node_modules' \
+            --exclude 'backend/node_modules' \
+            --exclude 'frontend/dist' \
+            --exclude 'backend/dist' \
+            ./ "${USER}@${HOST}:/opt/roundtalk/"
 
       - name: Rebuild stack
         uses: appleboy/ssh-action@v1.2.2

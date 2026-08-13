@@ -508,4 +508,39 @@ function joinByLink(): void {
     display: none;
   }
 }
+
+@media (max-width: 720px) {
+  .hero,
+  .features,
+  .meetings {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .hero {
+    padding-top: 20px;
+    padding-bottom: 32px;
+  }
+
+  .hero-copy h1 {
+    font-size: 28px;
+  }
+
+  .lead {
+    font-size: 16px;
+  }
+
+  .cta {
+    flex-direction: column;
+  }
+
+  .btn-wide {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .join {
+    max-width: 100%;
+  }
+}
 </style>

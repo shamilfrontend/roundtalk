@@ -1,12 +1,22 @@
 <script setup lang="ts">
-import { RouterLink } from "vue-router";
+import { computed } from "vue";
+import { RouterLink, useRoute } from "vue-router";
 import { useMetrika } from "@/composables/use-metrika";
 
+const route = useRoute();
 const { consent, accept, decline } = useMetrika();
+
+const inRoom = computed(() => route.name === "room");
 </script>
 
 <template>
-  <div v-if="consent === null" class="banner" role="dialog" aria-label="Cookies">
+  <div
+    v-if="consent === null"
+    class="banner"
+    :class="{ 'in-room': inRoom }"
+    role="dialog"
+    aria-label="Cookies"
+  >
     <p>
       Используем cookies и Яндекс.Метрику (карта кликов, Вебвизор), чтобы понять,
       как работает сервис.
@@ -27,7 +37,7 @@ const { consent, accept, decline } = useMetrika();
 .banner {
   position: fixed;
   right: 16px;
-  bottom: 16px;
+  bottom: max(16px, env(safe-area-inset-bottom, 0px));
   left: 16px;
   z-index: 40;
   display: flex;
@@ -40,6 +50,11 @@ const { consent, accept, decline } = useMetrika();
   border-radius: $radius-tile;
   background: $color-surface-alt;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+}
+
+.banner.in-room {
+  top: max(8px, env(safe-area-inset-top, 0px));
+  bottom: auto;
 }
 
 p {

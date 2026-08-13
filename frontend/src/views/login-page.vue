@@ -102,6 +102,7 @@ function onOauthClick(event: MouseEvent): void {
   display: grid;
   place-items: center;
   padding: 24px;
+  padding-bottom: max(24px, env(safe-area-inset-bottom, 0px));
 }
 
 .logo {
@@ -173,5 +174,22 @@ h1 {
 
 .oauth:hover:not(.disabled) {
   background: #353637;
+}
+
+@media (max-width: 720px) {
+  .login {
+    padding: 16px;
+    padding-top: max(16px, env(safe-area-inset-top, 0px));
+    padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+  }
+
+  .logo {
+    top: 16px;
+    left: 16px;
+  }
+
+  .card {
+    padding: 20px;
+  }
 }
 </style>

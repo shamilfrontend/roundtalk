@@ -1,5 +1,12 @@
 <script setup lang="ts">
-import { computed, onUnmounted, ref, watch } from "vue";
+import {
+  computed,
+  onMounted,
+  onUnmounted,
+  ref,
+  watch,
+  type CSSProperties,
+} from "vue";
 import { storeToRefs } from "pinia";
 import { useRoute, useRouter } from "vue-router";
 import { fetchPublicRoom } from "@/api/rooms";
@@ -93,8 +100,31 @@ const reactionsOpen = ref(false);
 const copied = ref(false);
 const roomToast = ref<string | null>(null);
 const now = ref(Date.now());
+const kbInset = ref(0);
 let clockId = 0;
 let copyId = 0;
+
+const roomStyle = computed<CSSProperties>(() => ({
+  "--kb-inset": `${kbInset.value}px`,
+}));
+
+const gridCountClass = computed(
+  () => `count-${Math.min(remoteParticipants.value.length, 5)}`,
+);
+
+function syncKeyboardInset(): void {
+  const viewport = window.visualViewport;
+
+  if (viewport === null) {
+    kbInset.value = 0;
+    return;
+  }
+
+  kbInset.value = Math.max(
+    0,
+    window.innerHeight - viewport.height - viewport.offsetTop,
+  );
+}
 
 const isHostUser = computed(() => {
   const userId = auth.user?.id;
@@ -316,7 +346,17 @@ function onPageHide(): void {
 window.addEventListener("beforeunload", onPageHide);
 window.addEventListener("pagehide", onPageHide);
 
+onMounted(() => {
+  const viewport = window.visualViewport;
+  viewport?.addEventListener("resize", syncKeyboardInset);
+  viewport?.addEventListener("scroll", syncKeyboardInset);
+  syncKeyboardInset();
+});
+
 onUnmounted(() => {
+  const viewport = window.visualViewport;
+  viewport?.removeEventListener("resize", syncKeyboardInset);
+  viewport?.removeEventListener("scroll", syncKeyboardInset);
   window.removeEventListener("beforeunload", onPageHide);
   window.removeEventListener("pagehide", onPageHide);
   window.clearInterval(clockId);
@@ -603,7 +643,7 @@ function sendChat(text: string): void {
 </script>
 
 <template>
-  <main class="room">
+  <main class="room" :style="roomStyle">
     <section v-if="wasReplaced" class="status">
       <h1>Вы вошли с другой вкладки</h1>
       <button class="btn btn-primary" type="button" @click="goHome">
@@ -732,7 +772,7 @@ function sendChat(text: string): void {
           </button>
         </div>
 
-        <div v-else class="grid">
+        <div v-else class="grid" :class="gridCountClass">
           <ParticipantTile
             v-for="item in remoteParticipants"
             :key="item.socketId ?? item.displayName"
@@ -832,6 +872,7 @@ function sendChat(text: string): void {
   overflow: hidden;
   background: $color-bg;
   --toolbar-space: 96px;
+  --kb-inset: 0px;
 }
 
 .status,
@@ -1015,6 +1056,17 @@ h1 {
     --toolbar-space: calc(140px + env(safe-area-inset-bottom, 0px));
   }
 
+  .prejoin-wrap {
+    overflow: auto;
+  }
+
+  @media (max-height: 700px) {
+    .prejoin-wrap {
+      justify-content: flex-start;
+      padding-top: max(16px, env(safe-area-inset-top, 0px));
+    }
+  }
+
   .top {
     top: 8px;
     left: 12px;
@@ -1024,6 +1076,7 @@ h1 {
 
   .top-info {
     min-width: 0;
+    flex-wrap: wrap;
     gap: 8px;
   }
 
@@ -1035,24 +1088,42 @@ h1 {
     font-size: 16px;
   }
 
+  .reconnect {
+    flex-basis: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .toasts {
     top: 56px;
   }
 
   .stage {
+    min-height: 0;
     padding: 56px 10px var(--toolbar-space);
   }
 
   .grid {
-    grid-template-columns: minmax(140px, 1fr);
+    grid-template-columns: minmax(0, 1fr);
+    grid-auto-rows: minmax(0, 1fr);
+    min-height: 0;
     gap: 8px;
+  }
+
+  .grid.count-2,
+  .grid.count-3,
+  .grid.count-4,
+  .grid.count-5 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .sidebar {
     top: 0;
     right: 0;
     left: 0;
-    bottom: var(--toolbar-space);
+    bottom: var(--kb-inset);
+    z-index: 6;
     border-radius: 0;
   }
 
@@ -1084,6 +1155,25 @@ h1 {
     width: 140px;
     height: 96px;
     min-height: 96px;
+  }
+}
+
+@media (max-width: 720px) and (orientation: landscape) {
+  .room {
+    --toolbar-space: calc(72px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .top {
+    top: 4px;
+  }
+
+  .stage {
+    padding: 48px 10px var(--toolbar-space);
+  }
+
+  .prejoin-wrap {
+    justify-content: flex-start;
+    padding-top: max(16px, env(safe-area-inset-top, 0px));
   }
 }
 

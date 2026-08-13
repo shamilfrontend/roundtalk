@@ -68,7 +68,14 @@ function onSend(): void {
           maxlength="1000"
           placeholder="Сообщение"
         />
-        <button class="btn btn-primary" type="submit">Отправить</button>
+        <button
+          class="btn btn-primary send"
+          type="submit"
+          aria-label="Отправить"
+        >
+          <span class="send-label">Отправить</span>
+          <FontAwesomeIcon class="send-icon" icon="paper-plane" />
+        </button>
       </form>
     </div>
 
@@ -169,6 +176,10 @@ h2 {
   padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
 }
 
+.send-icon {
+  display: none;
+}
+
 .people {
   list-style: none;
   margin: 0;
@@ -209,11 +220,26 @@ h2 {
 @media (max-width: 720px) {
   .sidebar {
     width: 100%;
+    height: 100%;
     border-radius: 0;
   }
 
   .composer {
     padding-bottom: 12px;
+  }
+
+  .send {
+    width: 48px;
+    padding: 0;
+    flex: none;
+  }
+
+  .send-label {
+    display: none;
+  }
+
+  .send-icon {
+    display: block;
   }
 }
 </style>

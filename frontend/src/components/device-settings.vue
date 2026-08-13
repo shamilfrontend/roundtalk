@@ -153,4 +153,17 @@ h2 {
   font-size: 13px;
   color: $color-text-secondary;
 }
+
+@media (max-width: 720px) {
+  .overlay {
+    place-items: end stretch;
+    padding: 0 0 var(--kb-inset, 0px);
+  }
+
+  .panel {
+    width: 100%;
+    border-radius: 16px 16px 0 0;
+    padding: 20px 16px max(16px, env(safe-area-inset-bottom, 0px));
+  }
+}
 </style>

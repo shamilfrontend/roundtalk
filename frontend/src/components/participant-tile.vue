@@ -430,7 +430,7 @@ onUnmounted(() => {
 
 @media (max-width: 720px) {
   .tile {
-    min-height: 120px;
+    min-height: 0;
   }
 
   .name {

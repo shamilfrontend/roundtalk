@@ -175,4 +175,17 @@ h2 {
   justify-content: flex-end;
   gap: 8px;
 }
+
+@media (max-width: 720px) {
+  .overlay {
+    place-items: end center;
+    padding: 0;
+  }
+
+  .dialog {
+    width: 100%;
+    border-radius: 16px 16px 0 0;
+    padding: 20px 16px max(20px, env(safe-area-inset-bottom, 0px));
+  }
+}
 </style>

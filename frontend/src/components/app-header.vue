@@ -33,18 +33,24 @@ async function onLogout(): Promise<void> {
       <button
         class="btn btn-primary"
         type="button"
+        aria-label="Создать встречу"
         :disabled="isCreating"
         @click="emit('create')"
       >
         <FontAwesomeIcon icon="plus" />
-        Создать встречу
+        <span class="btn-label">Создать встречу</span>
       </button>
 
       <template v-if="auth.isAuthenticated">
         <span class="name">{{ auth.user?.name }}</span>
-        <button class="btn btn-ghost" type="button" @click="onLogout">
+        <button
+          class="btn btn-ghost"
+          type="button"
+          aria-label="Выйти"
+          @click="onLogout"
+        >
           <FontAwesomeIcon icon="right-from-bracket" />
-          Выйти
+          <span class="btn-label">Выйти</span>
         </button>
       </template>
 
@@ -101,6 +107,19 @@ async function onLogout(): Promise<void> {
 @media (max-width: 720px) {
   .header {
     padding: 12px 16px;
+    gap: 8px;
+  }
+
+  .actions {
+    gap: 8px;
+  }
+
+  .actions .btn {
+    padding: 10px 12px;
+  }
+
+  .btn-label {
+    display: none;
   }
 
   .name {

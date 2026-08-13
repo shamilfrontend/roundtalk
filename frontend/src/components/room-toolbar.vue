@@ -243,7 +243,7 @@ const emit = defineEmits<{
     align-items: center;
     justify-content: space-around;
     width: 100%;
-    gap: 8px;
+    gap: 4px;
   }
 
   .cluster.extra {
@@ -275,6 +275,27 @@ const emit = defineEmits<{
     width: 36px;
     height: 36px;
     font-size: 20px;
+  }
+}
+
+@media (max-width: 720px) and (orientation: landscape) {
+  .toolbar {
+    flex-direction: row;
+    gap: 4px;
+    padding: 6px 6px calc(6px + env(safe-area-inset-bottom, 0px));
+    border-radius: 16px;
+  }
+
+  .secondary,
+  .cluster {
+    display: contents;
+  }
+
+  .round,
+  .cluster.extra .round,
+  .cluster.main .round {
+    width: 40px;
+    height: 40px;
   }
 }
 

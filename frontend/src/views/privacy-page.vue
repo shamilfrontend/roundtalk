@@ -93,6 +93,7 @@ import { RouterLink } from "vue-router";
 .privacy {
   min-height: 100%;
   padding: 88px 24px 48px;
+  padding-bottom: max(48px, env(safe-area-inset-bottom, 0px));
 }
 
 .logo {
@@ -154,5 +155,25 @@ li + li {
 
 code {
   font-size: 13px;
+}
+
+@media (max-width: 720px) {
+  .privacy {
+    padding: 72px 16px 24px;
+    padding-bottom: max(24px, env(safe-area-inset-bottom, 0px));
+  }
+
+  .logo {
+    top: 16px;
+    left: 16px;
+  }
+
+  .card {
+    padding: 20px;
+  }
+
+  h1 {
+    font-size: 24px;
+  }
 }
 </style>
